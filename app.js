@@ -7,6 +7,37 @@
 
 const API = 'api.php';
 
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════════ */
+const state = {
+  resources:         [],
+  categories:        [],
+  progress:          {},
+  activeCat:         '',
+  searchQuery:       '',
+  totalRes:          0,
+  ratings:           { content: 0, tag: 0 },
+  pendingResourceId: null,
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   DOM HELPERS
+   ═══════════════════════════════════════════════════════════════ */
+const $  = id => document.getElementById(id);
+const $grid       = () => $('resourceGrid');
+const $empty      = () => $('emptyState');
+const $count      = () => $('resultCount');
+const $completedN = () => $('completedCount');
+const $barFill    = () => $('statBarFill');
+const $catList    = () => $('categoryList');
+const $overlay    = () => $('modalOverlay');
+const $modalTitle = () => $('modalTitle');
+const $modalSub   = () => $('modalSub');
+const $comment    = () => $('feedbackComment');
+const $submitBtn  = () => $('submitBtn');
+const $toast      = () => $('toastEl');
+
 /* ── Auth guard: redirect to login if no session ──────────────
    Uses sessionStorage (set by login.html on success).
    Falls back to a whoami API call to confirm PHP session.   */
@@ -72,36 +103,6 @@ const LINK_ICON  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 const SEND_ICON  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
 
-/* ═══════════════════════════════════════════════════════════════
-   STATE
-   ═══════════════════════════════════════════════════════════════ */
-const state = {
-  resources:         [],
-  categories:        [],
-  progress:          {},
-  activeCat:         '',
-  searchQuery:       '',
-  totalRes:          0,
-  ratings:           { content: 0, tag: 0 },
-  pendingResourceId: null,
-};
-
-/* ═══════════════════════════════════════════════════════════════
-   DOM HELPERS
-   ═══════════════════════════════════════════════════════════════ */
-const $  = id => document.getElementById(id);
-const $grid       = () => $('resourceGrid');
-const $empty      = () => $('emptyState');
-const $count      = () => $('resultCount');
-const $completedN = () => $('completedCount');
-const $barFill    = () => $('statBarFill');
-const $catList    = () => $('categoryList');
-const $overlay    = () => $('modalOverlay');
-const $modalTitle = () => $('modalTitle');
-const $modalSub   = () => $('modalSub');
-const $comment    = () => $('feedbackComment');
-const $submitBtn  = () => $('submitBtn');
-const $toast      = () => $('toastEl');
 
 /* ═══════════════════════════════════════════════════════════════
    BOOT
@@ -119,20 +120,32 @@ async function bootApp() {
    ═══════════════════════════════════════════════════════════════ */
 async function loadCategories() {
   try {
-    const res  = await fetch(`${API}?action=categories`);
+    const res = await fetch(`${API}?action=categories`, { credentials: 'include' });
+    console.log('Categories Status:', res.status); // Should be 200
+    
+    if (res.status === 401) {
+      console.error('Session Expired: Redirecting to login.');
+      window.location.replace('login.html');
+      return;
+    }
+
     const data = await res.json();
+    console.log('Categories Data:', data);
     state.categories = data.categories || [];
     renderCategories();
-  } catch (e) { console.warn('Could not load categories', e); }
+  } catch (e) {
+    console.error('Fetch Error (Categories):', e);
+  }
 }
 
 function renderCategories() {
   const list = $catList();
   if (!list) return;
   list.innerHTML = state.categories.map(c => `
-    <button class="cat-btn" data-cat="${c.id}"
-            onclick="filterCategory(this, '${c.id}')">
-      <span class="cat-icon"><i class="${c.icon}"></i></span>
+    <button class="cat-btn ${state.activeCat == c.id ? 'active' : ''}" 
+            data-cat="${c.id}" 
+            onclick="filterCategory(this, ${c.id})">
+      <span class="cat-icon"><i class="bi ${c.icon}"></i></span>
       ${esc(c.name)}
     </button>
   `).join('');
@@ -143,21 +156,28 @@ function renderCategories() {
    ═══════════════════════════════════════════════════════════════ */
 async function loadProgress() {
   try {
-    const res  = await fetch(`${API}?action=progress`);
-    if (res.status === 401) { window.location.replace('login.html'); return; }
+    const res = await fetch(`${API}?action=progress`, { credentials: 'include' });
+    console.log('Progress Status:', res.status);
+
     const data = await res.json();
+    console.log('Progress Data:', data);
     state.progress = data.progress || {};
     updateProgressStat();
-  } catch (e) { console.warn('Could not load progress', e); }
+  } catch (e) {
+    console.error('Fetch Error (Progress):', e);
+  }
 }
 
 function updateProgressStat() {
-  const n  = Object.values(state.progress).filter(s => s === 'Completed').length;
+  const n = Object.values(state.progress).filter(s => s === 'Completed').length;
   const el = $completedN();
   if (el) el.textContent = n;
+
   const fill = $barFill();
-  if (fill && state.totalRes > 0)
+  if (fill && state.totalRes > 0) {
+    // Ensure the math uses the count of resources currently in the state
     fill.style.width = Math.round((n / state.totalRes) * 100) + '%';
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -172,7 +192,7 @@ async function loadResources() {
   const url = params.toString() ? `${API}?${params}` : API;
 
   try {
-    const res  = await fetch(url);
+    const res = await fetch(url, { credentials: 'include' });
     if (res.status === 401) { window.location.replace('login.html'); return; }
     const data = await res.json();
     state.resources = data.resources || [];
@@ -306,8 +326,11 @@ function bindSearch() {
     timer = setTimeout(() => {
       state.searchQuery = val;
       state.activeCat   = '';
+      // Reset active state on sidebar buttons
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      document.querySelector('.cat-btn[data-cat=""]')?.classList.add('active');
+      // Find the "All Resources" button (the one with empty data-cat)
+      const allBtn = document.querySelector('.cat-btn[data-cat=""]');
+      if (allBtn) allBtn.classList.add('active');
       loadResources();
     }, 300);
   });
@@ -388,6 +411,7 @@ async function submitFeedback() {
     const res = await fetch(API, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Add this here too
       body: JSON.stringify({
         action:            'feedback',
         resource_id:       resourceId,
