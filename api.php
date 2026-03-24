@@ -15,6 +15,11 @@
  */
 
 session_start();
+// Add this to ensure sessions work across different fetch requests
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    header('Access-Control-Allow-Credentials: true');
+}
 require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json; charset=utf-8');
