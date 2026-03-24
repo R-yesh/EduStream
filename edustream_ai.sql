@@ -77,14 +77,15 @@ CREATE TABLE IF NOT EXISTS `user_progress` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ─────────────────────────────────────────────────────────────
---  5. FEEDBACK
+--  5. FEEDBACK (Fixed Version)
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `feedback` (
   `id`                INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   `user_id`           INT UNSIGNED  NOT NULL,
   `resource_id`       INT UNSIGNED  NOT NULL,
-  `content_relevance` TINYINT UNSIGNED NOT NULL,
-  `tag_relevance`     TINYINT UNSIGNED NOT NULL,
+  /* Moving CHECK constraints directly to columns for better compatibility */
+  `content_relevance` TINYINT UNSIGNED NOT NULL CHECK (`content_relevance` BETWEEN 1 AND 5),
+  `tag_relevance`     TINYINT UNSIGNED NOT NULL CHECK (`tag_relevance` BETWEEN 1 AND 5),
   `comment`           TEXT,
   `created_at`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -92,9 +93,7 @@ CREATE TABLE IF NOT EXISTS `feedback` (
   CONSTRAINT `fk_fb_user`
     FOREIGN KEY (`user_id`)     REFERENCES `users`     (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_fb_res`
-    FOREIGN KEY (`resource_id`) REFERENCES `resources` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `chk_content_rating` CHECK (`content_relevance` BETWEEN 1 AND 5),
-  CONSTRAINT `chk_tag_rating`     CHECK (`tag_relevance`     BETWEEN 1 AND 5)
+    FOREIGN KEY (`resource_id`) REFERENCES `resources` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
