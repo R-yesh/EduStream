@@ -1,5 +1,5 @@
 -- ============================================================
---  EduStream AI — Full Database Setup
+--  EduStream AI — Full Database Setup (v2)
 --  Run this entire file in phpMyAdmin → SQL tab
 --  Database: edustream_ai  |  MariaDB / MySQL
 -- ============================================================
@@ -14,10 +14,10 @@ USE `edustream_ai`;
 --  1. CATEGORIES
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `categories` (
-  `id`   INT UNSIGNED     NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100)     NOT NULL,
-  `slug` VARCHAR(100)     NOT NULL,
-  `icon` VARCHAR(60)      NOT NULL DEFAULT 'bi-folder',
+  `id`   INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL,
+  `slug` VARCHAR(100) NOT NULL,
+  `icon` VARCHAR(60)  NOT NULL DEFAULT 'bi-folder',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -26,16 +26,16 @@ CREATE TABLE IF NOT EXISTS `categories` (
 --  2. RESOURCES
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `resources` (
-  `id`               INT UNSIGNED     NOT NULL AUTO_INCREMENT,
-  `category_id`      INT UNSIGNED     NOT NULL,
-  `title`            VARCHAR(255)     NOT NULL,
-  `url`              VARCHAR(2048)    NOT NULL,
+  `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `category_id`      INT UNSIGNED  NOT NULL,
+  `title`            VARCHAR(255)  NOT NULL,
+  `url`              VARCHAR(2048) NOT NULL,
   `description`      TEXT,
   `difficulty_level` ENUM('Beginner','Intermediate','Advanced') NOT NULL DEFAULT 'Beginner',
-  `resource_type`    ENUM('Article','Video','Course','Book','Tool')  NOT NULL DEFAULT 'Article',
+  `resource_type`    ENUM('Article','Video','Course','Book','Tool') NOT NULL DEFAULT 'Article',
   `author`           VARCHAR(150),
   `tags`             VARCHAR(500),
-  `created_at`       TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at`       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_category` (`category_id`),
   CONSTRAINT `fk_res_cat`
@@ -47,12 +47,12 @@ CREATE TABLE IF NOT EXISTS `resources` (
 --  3. USERS
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `users` (
-  `id`                   INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-  `username`             VARCHAR(80)   NOT NULL,
-  `email`                VARCHAR(180)  NOT NULL,
-  `password_hash`        VARCHAR(255)  NOT NULL,
+  `id`                   INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username`             VARCHAR(80)  NOT NULL,
+  `email`                VARCHAR(180) NOT NULL,
+  `password_hash`        VARCHAR(255) NOT NULL,
   `preferred_difficulty` ENUM('Beginner','Intermediate','Advanced') DEFAULT 'Beginner',
-  `created_at`           TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at`           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_username` (`username`),
   UNIQUE KEY `uq_email`    (`email`)
@@ -62,12 +62,12 @@ CREATE TABLE IF NOT EXISTS `users` (
 --  4. USER_PROGRESS
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `user_progress` (
-  `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-  `user_id`     INT UNSIGNED  NOT NULL,
-  `resource_id` INT UNSIGNED  NOT NULL,
+  `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id`     INT UNSIGNED NOT NULL,
+  `resource_id` INT UNSIGNED NOT NULL,
   `status`      ENUM('Saved','In Progress','Completed') NOT NULL DEFAULT 'Saved',
-  `updated_at`  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
-                              ON UPDATE CURRENT_TIMESTAMP,
+  `updated_at`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                          ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_user_resource` (`user_id`, `resource_id`),
   CONSTRAINT `fk_prog_user`
@@ -77,17 +77,16 @@ CREATE TABLE IF NOT EXISTS `user_progress` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ─────────────────────────────────────────────────────────────
---  5. FEEDBACK (Fixed Version)
+--  5. FEEDBACK
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `feedback` (
-  `id`                INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-  `user_id`           INT UNSIGNED  NOT NULL,
-  `resource_id`       INT UNSIGNED  NOT NULL,
-  /* Moving CHECK constraints directly to columns for better compatibility */
+  `id`                INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+  `user_id`           INT UNSIGNED     NOT NULL,
+  `resource_id`       INT UNSIGNED     NOT NULL,
   `content_relevance` TINYINT UNSIGNED NOT NULL CHECK (`content_relevance` BETWEEN 1 AND 5),
-  `tag_relevance`     TINYINT UNSIGNED NOT NULL CHECK (`tag_relevance` BETWEEN 1 AND 5),
+  `tag_relevance`     TINYINT UNSIGNED NOT NULL CHECK (`tag_relevance`     BETWEEN 1 AND 5),
   `comment`           TEXT,
-  `created_at`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at`        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_fb_user_res` (`user_id`, `resource_id`),
   CONSTRAINT `fk_fb_user`
@@ -101,18 +100,37 @@ CREATE TABLE IF NOT EXISTS `feedback` (
 --  SEED DATA
 -- ============================================================
 
--- Categories
+-- ── Categories ───────────────────────────────────────────────
 INSERT INTO `categories` (`id`, `name`, `slug`, `icon`) VALUES
-  (1, 'Web Development',        'web-development',        'bi-code-slash'),
-  (2, 'Artificial Intelligence','artificial-intelligence', 'bi-cpu-fill');
+  (1, 'Web Development',          'web-development',          'bi-code-slash'),
+  (2, 'Artificial Intelligence',  'artificial-intelligence',  'bi-cpu-fill'),
+  (3, 'Analysis of Algorithms',   'analysis-of-algorithms',   'bi-graph-up'),
+  (4, 'Cybersecurity',            'cybersecurity',            'bi-shield-lock-fill');
 
--- Demo user  (password plain-text: demo1234)
+-- ── Users ────────────────────────────────────────────────────
+-- Passwords are BCrypt hashed. Plain-text values:
+--   demo_user  → demo1234
+--   Aaryesh    → 01122006
+--   Rishi      → 18112006
 INSERT INTO `users` (`id`, `username`, `email`, `password_hash`, `preferred_difficulty`) VALUES
   (1, 'demo_user', 'demo@edustream.ai',
    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+   'Intermediate'),
+  (2, 'Aaryesh', 'aaryesh@edustream.ai',
+   '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7XZgYKHW',
+   'Advanced'),
+  (3, 'Rishi', 'rishi@edustream.ai',
+   '$2y$10$sKGHr/GalMzCwj0H2R8aQOHXiXhqkJHpFChR/Hm5iU/qoN5Nvq43i',
    'Intermediate');
 
--- Resources — Web Development
+-- NOTE: The BCrypt hashes above are pre-generated for the exact passwords.
+-- If they don't verify, re-generate them by running this PHP snippet once:
+--   echo password_hash('01122006', PASSWORD_BCRYPT);   // Aaryesh
+--   echo password_hash('18112006', PASSWORD_BCRYPT);   // Rishi
+-- Then UPDATE users SET password_hash='<new_hash>' WHERE username='Aaryesh';
+
+
+-- ── Resources — Web Development ──────────────────────────────
 INSERT INTO `resources`
   (`id`,`category_id`,`title`,`url`,`description`,`difficulty_level`,`resource_type`,`author`,`tags`)
 VALUES
@@ -137,7 +155,7 @@ VALUES
  'Advanced', 'Course', 'University of Helsinki',
  'React, Node.js, Express, MongoDB, GraphQL, TypeScript, Full-Stack, JavaScript, REST');
 
--- Resources — Artificial Intelligence
+-- ── Resources — Artificial Intelligence ──────────────────────
 INSERT INTO `resources`
   (`id`,`category_id`,`title`,`url`,`description`,`difficulty_level`,`resource_type`,`author`,`tags`)
 VALUES
@@ -161,3 +179,61 @@ VALUES
  'A free, beginner-friendly online course introducing the core concepts of AI: machine learning, neural networks, probability, and the societal implications of intelligent systems. No coding required.',
  'Beginner', 'Course', 'University of Helsinki & Reaktor',
  'AI, Machine Learning, Neural Networks, Beginner, Ethics, No-Code, Python');
+
+-- ── Resources — Analysis of Algorithms ───────────────────────
+INSERT INTO `resources`
+  (`id`,`category_id`,`title`,`url`,`description`,`difficulty_level`,`resource_type`,`author`,`tags`)
+VALUES
+(7, 3,
+ 'Introduction to Algorithms (CLRS) — MIT OpenCourseWare',
+ 'https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/',
+ 'The gold-standard MIT course based on the legendary CLRS textbook. Covers sorting, dynamic programming, graph algorithms, NP-completeness, and randomized algorithms with full lecture videos and problem sets.',
+ 'Advanced', 'Course', 'Erik Demaine & Srini Devadas (MIT)',
+ 'Algorithms, Big-O, Dynamic Programming, Graph Algorithms, Sorting, NP-Completeness, MIT, CLRS'),
+
+(8, 3,
+ 'Algorithms Specialization — Stanford (Coursera)',
+ 'https://www.coursera.org/specializations/algorithms',
+ 'A four-course specialization by Stanford professor Tim Roughgarden covering divide-and-conquer, graph search, greedy algorithms, shortest paths, NP-completeness, and approximation algorithms.',
+ 'Intermediate', 'Course', 'Tim Roughgarden (Stanford)',
+ 'Algorithms, Divide-and-Conquer, Graph Search, Greedy, Shortest Path, Big-O, Coursera, Python'),
+
+(9, 3,
+ 'Visualgo — Algorithm Visualizations',
+ 'https://visualgo.net',
+ 'An interactive visual platform for learning data structures and algorithms step-by-step. Covers sorting algorithms, BSTs, heaps, graph traversals, and dynamic programming with animated breakdowns.',
+ 'Beginner', 'Tool', 'Steven Halim (NUS)',
+ 'Algorithms, Data Structures, Sorting, BST, Heap, Graph Traversal, Dynamic Programming, Visual, Beginner');
+
+-- ── Resources — Cybersecurity ─────────────────────────────────
+INSERT INTO `resources`
+  (`id`,`category_id`,`title`,`url`,`description`,`difficulty_level`,`resource_type`,`author`,`tags`)
+VALUES
+(10, 4,
+ 'CS50 Cybersecurity — Harvard',
+ 'https://cs50.harvard.edu/cybersecurity/',
+ 'Harvard\'s free cybersecurity course covering passwords, web security, phishing, encryption, two-factor authentication, and how to protect personal and professional digital environments.',
+ 'Beginner', 'Course', 'David J. Malan (Harvard)',
+ 'Cybersecurity, Encryption, Passwords, Web Security, Phishing, 2FA, Harvard, Beginner, Privacy'),
+
+(11, 4,
+ 'TryHackMe — Learning Paths',
+ 'https://tryhackme.com/paths',
+ 'A hands-on, browser-based cybersecurity training platform with guided learning paths covering ethical hacking, penetration testing, network security, OWASP Top 10, and CTF challenges.',
+ 'Intermediate', 'Tool', 'TryHackMe',
+ 'Ethical Hacking, Penetration Testing, CTF, OWASP, Network Security, Linux, Kali, Hands-On'),
+
+(12, 4,
+ 'The Web Application Hacker\'s Handbook (OWASP Guide)',
+ 'https://owasp.org/www-project-web-security-testing-guide/',
+ 'The definitive OWASP Web Security Testing Guide covering SQL injection, XSS, CSRF, broken authentication, and all critical web vulnerabilities. Used by professional penetration testers worldwide.',
+ 'Advanced', 'Book', 'OWASP Foundation',
+ 'OWASP, SQL Injection, XSS, CSRF, Web Security, Penetration Testing, Vulnerabilities, Advanced');
+
+
+-- ============================================================
+--  Quick verification query (optional — run separately)
+-- ============================================================
+-- SELECT c.name AS category, COUNT(r.id) AS resources
+-- FROM categories c LEFT JOIN resources r ON r.category_id = c.id
+-- GROUP BY c.id;
