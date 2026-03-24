@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduStream AI — Sign In</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&display=swap"
+        rel="stylesheet">
+
+  <style>
+    /* ── Tokens ─────────────────────────────────────────────── */
+    :root {
+      --c-bg:          #f2f8f6;
+      --c-surface:     #ffffff;
+      --c-border:      #cce8df;
+      --c-mint:        #35b98a;
+      --c-mint-dark:   #238c68;
+      --c-mint-light:  #c5ead9;
+      --c-mint-xlight: #eaf7f2;
+      --c-sky:         #4fa8d5;
+      --c-sky-dark:    #2f7faa;
+      --c-sky-light:   #cee8f6;
+      --c-text:        #172520;
+      --c-text-soft:   #3d5a52;
+      --c-muted:       #6b8c82;
+      --c-error:       #c0392b;
+      --c-error-bg:    #fdecea;
+
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+      --ease:         cubic-bezier(.4,0,.2,1);
+      --transition:   .22s var(--ease);
+      --radius-md:    14px;
+      --radius-lg:    22px;
+      --radius-pill:  999px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--c-bg);
+      color: var(--c-text);
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Split layout ────────────────────────────────────────── */
+    .page {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* Left panel — decorative */
+    .panel-left {
+      flex: 1.1;
+      background: linear-gradient(155deg, #1a6e52 0%, #238c68 35%, #2f7faa 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px 52px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative background circles */
+    .panel-left::before,
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      opacity: .12;
+    }
+    .panel-left::before {
+      width: 480px; height: 480px;
+      background: #fff;
+      top: -120px; right: -140px;
+    }
+    .panel-left::after {
+      width: 320px; height: 320px;
+      background: #fff;
+      bottom: -80px; left: -100px;
+    }
+
+    /* Floating dot grid */
+    .dot-grid {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .dot-grid svg {
+      width: 100%; height: 100%;
+      opacity: .09;
+    }
+
+    .panel-brand {
+      font-family: var(--font-display);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.025em;
+      position: relative;
+      z-index: 1;
+    }
+    .panel-brand span { color: rgba(255,255,255,.65); }
+
+    .panel-hero { position: relative; z-index: 1; }
+
+    .panel-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3.5vw, 2.8rem);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.22;
+      letter-spacing: -.03em;
+      margin-bottom: 18px;
+    }
+    .panel-hero h1 em {
+      font-style: italic;
+      font-weight: 300;
+      color: rgba(255,255,255,.75);
+    }
+
+    .panel-hero p {
+      font-size: 1rem;
+      color: rgba(255,255,255,.72);
+      line-height: 1.65;
+      max-width: 320px;
+    }
+
+    /* Feature pills */
+    .feature-pills {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 30px;
+    }
+    .feature-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: var(--radius-pill);
+      padding: 8px 16px;
+      width: fit-content;
+      font-size: .84rem;
+      color: rgba(255,255,255,.9);
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+    }
+    .feature-pill .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #7fefcc;
+      flex-shrink: 0;
+    }
+
+    .panel-footer {
+      font-size: .75rem;
+      color: rgba(255,255,255,.45);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Right panel — form ──────────────────────────────────── */
+    .panel-right {
+      flex: .9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 40px;
+      background: var(--c-surface);
+    }
+
+    .form-card {
+      width: 100%;
+      max-width: 380px;
+      animation: fadeUp .5s var(--ease) both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-header { margin-bottom: 32px; }
+    .form-header h2 {
+      font-family: var(--font-display);
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--c-text);
+      letter-spacing: -.03em;
+      line-height: 1.2;
+    }
+    .form-header p {
+      font-size: .88rem;
+      color: var(--c-muted);
+      margin-top: 6px;
+    }
+
+    /* Form fields */
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--c-text-soft);
+      margin-bottom: 7px;
+      letter-spacing: .01em;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+    .input-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--c-muted);
+      display: flex;
+      align-items: center;
+      pointer-events: none;
+    }
+    .input-icon svg { width: 16px; height: 16px; }
+
+    .field input {
+      width: 100%;
+      padding: 11px 14px 11px 40px;
+      border: 1.5px solid var(--c-border);
+      border-radius: var(--radius-md);
+      background: var(--c-bg);
+      font-family: var(--font-body);
+      font-size: .92rem;
+      color: var(--c-text);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition),
+                  background var(--transition);
+    }
+    .field input:focus {
+      border-color: var(--c-mint);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(53,185,138,.14);
+    }
+    .field input::placeholder { color: #b0c9c2; }
+
+    /* Password toggle */
+    .pw-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--c-muted);
+      display: flex;
+      align-items: center;
+      transition: color var(--transition);
+      padding: 2px;
+    }
+    .pw-toggle:hover { color: var(--c-mint-dark); }
+    .pw-toggle svg { width: 16px; height: 16px; }
+
+    /* Error message */
+    #errorMsg {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--c-error-bg);
+      border: 1px solid #f5c2be;
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: .84rem;
+      color: var(--c-error);
+      margin-bottom: 16px;
+      animation: shake .4s var(--ease);
+    }
+    #errorMsg.show { display: flex; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      40%      { transform: translateX(6px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(4px); }
+    }
+    #errorMsg svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    /* Submit button */
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--c-mint) 0%, var(--c-sky) 100%);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .01em;
+      cursor: pointer;
+      transition: opacity var(--transition), transform var(--transition),
+                  box-shadow var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .btn-login:hover:not(:disabled) {
+      opacity: .92;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(53,185,138,.32);
+    }
+    .btn-login:active:not(:disabled) { transform: translateY(0); }
+    .btn-login:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-login svg { width: 17px; height: 17px; }
+
+    /* Spinner inside button */
+    .spinner {
+      width: 17px; height: 17px;
+      border: 2.5px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      display: none;
+    }
+    .btn-login.loading .spinner { display: block; }
+    .btn-login.loading .btn-text,
+    .btn-login.loading .btn-icon { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Demo hint */
+    .demo-hint {
+      margin-top: 22px;
+      padding: 14px 16px;
+      background: var(--c-mint-xlight);
+      border: 1px solid var(--c-mint-light);
+      border-radius: var(--radius-md);
+      font-size: .8rem;
+      color: var(--c-text-soft);
+      line-height: 1.6;
+    }
+    .demo-hint strong { color: var(--c-mint-dark); font-weight: 600; }
+    .demo-hint .demo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .demo-row:first-of-type { margin-top: 10px; }
+
+    .use-btn {
+      background: var(--c-mint-light);
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 3px 10px;
+      font-family: var(--font-body);
+      font-size: .73rem;
+      font-weight: 600;
+      color: var(--c-mint-dark);
+      cursor: pointer;
+      transition: background var(--transition);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .use-btn:hover { background: var(--c-mint); color: #fff; }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .panel-left { display: none; }
+      .panel-right { flex: 1; background: var(--c-bg); }
+    }
+    @media (max-width: 480px) {
+      .panel-right { padding: 32px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── Left decorative panel ──────────────────────────────── -->
+  <div class="panel-left">
+
+    <!-- Dot pattern background -->
+    <div class="dot-grid">
+      <svg viewBox="0 0 600 800" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id="dots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="2" fill="white"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#dots)"/>
+      </svg>
+    </div>
+
+    <div class="panel-brand">Edu<span>Stream</span> AI</div>
+
+    <div class="panel-hero">
+      <h1>Learn smarter,<br><em>not harder.</em></h1>
+      <p>Track your progress through curated courses in Web Dev, AI, Algorithms, and Cybersecurity — all in one place.</p>
+
+      <div class="feature-pills">
+        <div class="feature-pill"><span class="dot"></span> 12 curated resources across 4 disciplines</div>
+        <div class="feature-pill"><span class="dot"></span> Track completion &amp; rate content relevance</div>
+        <div class="feature-pill"><span class="dot"></span> Smart search by tag, title, or topic</div>
+      </div>
+    </div>
+
+    <div class="panel-footer">EduStream AI · Lab Project · XAMPP Localhost</div>
+  </div>
+
+  <!-- ── Right form panel ───────────────────────────────────── -->
+  <div class="panel-right">
+    <div class="form-card">
+
+      <div class="form-header">
+        <h2>Welcome back 👋</h2>
+        <p>Sign in to continue your learning journey.</p>
+      </div>
+
+      <!-- Error message -->
+      <div id="errorMsg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="errorText">Invalid username or password.</span>
+      </div>
+
+      <!-- Username field -->
+      <div class="field">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          <input id="username" type="text" placeholder="Enter your username"
+                 autocomplete="username" spellcheck="false">
+        </div>
+      </div>
+
+      <!-- Password field -->
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input id="password" type="password" placeholder="Enter your password"
+                 autocomplete="current-password">
+          <button class="pw-toggle" type="button" id="pwToggle"
+                  onclick="togglePassword()" aria-label="Toggle password visibility">
+            <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Submit button -->
+      <button class="btn-login" id="loginBtn" onclick="handleLogin()">
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               width="17" height="17">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+        </span>
+        <span class="btn-text">Sign In</span>
+        <div class="spinner"></div>
+      </button>
+
+      <!-- Demo user quick-fill -->
+      <div class="demo-hint">
+        <strong>🧪 Lab accounts — click to fill:</strong>
+
+        <div class="demo-row">
+          <span><strong>Aaryesh</strong> / 01122006</span>
+          <button class="use-btn" onclick="fillCredentials('Aaryesh','01122006')">Use</button>
+        </div>
+        <div class="demo-row">
+          <span><strong>Rishi</strong> / 18112006</span>
+          <button class="use-btn" onclick="fillCredentials('Rishi','18112006')">Use</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /.page -->
+
+<script>
+  /* Redirect if already logged in */
+  (function() {
+    if (sessionStorage.getItem('edu_user')) {
+      window.location.replace('index.html');
+    }
+  })();
+
+  /* ── Enter key submit ───────────────────────────────────── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+
+  /* ── Password visibility toggle ────────────────────────── */
+  function togglePassword() {
+    const input = document.getElementById('password');
+    const icon  = document.getElementById('eyeIcon');
+    const show  = input.type === 'password';
+    input.type  = show ? 'text' : 'password';
+    icon.innerHTML = show
+      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`
+      : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+
+  /* ── Quick-fill demo credentials ───────────────────────── */
+  function fillCredentials(user, pass) {
+    document.getElementById('username').value = user;
+    document.getElementById('password').value = pass;
+    document.getElementById('errorMsg').classList.remove('show');
+    document.getElementById('username').focus();
+  }
+
+  /* ── Login handler ──────────────────────────────────────── */
+  async function handleLogin() {
+    const btn      = document.getElementById('loginBtn');
+    const errBox   = document.getElementById('errorMsg');
+    const errText  = document.getElementById('errorText');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    errBox.classList.remove('show');
+
+    if (!username || !password) {
+      errText.textContent = 'Please enter both username and password.';
+      errBox.classList.add('show');
+      return;
+    }
+
+    /* Loading state */
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch('auth.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        /* Store minimal user info in sessionStorage for the main app */
+        sessionStorage.setItem('edu_user', JSON.stringify({
+          id:       data.user_id,
+          username: data.username,
+        }));
+        /* Redirect to main app */
+        window.location.replace('index.html');
+      } else {
+        errText.textContent = data.error || 'Invalid username or password.';
+        errBox.classList.add('show');
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        /* Shake the password field */
+        const pw = document.getElementById('password');
+        pw.style.animation = 'none';
+        pw.getBoundingClientRect(); // reflow
+        pw.style.animation = '';
+      }
+    } catch (e) {
+      errText.textContent = 'Network error — is XAMPP running?';
+      errBox.classList.add('show');
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
