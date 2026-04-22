@@ -800,3 +800,517 @@ body {
   .brand { font-size: 1.2rem; }
   .user-label { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ADMIN PANEL STYLES
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Admin topbar button ────────────────────────────────────── */
+.btn-admin-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--c-sky-light);
+  background: var(--c-sky-xlight);
+  color: var(--c-sky-dark);
+  font-family: var(--font-body);
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition),
+              border-color var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-admin-panel:hover {
+  background: var(--c-sky);
+  border-color: var(--c-sky);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(79,168,213,.35);
+}
+.btn-admin-panel svg { width: 14px; height: 14px; }
+
+/* ── Card admin action buttons (Edit / Delete on each card) ─── */
+.card-admin-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.btn-card-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: .72rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: background var(--transition), color var(--transition),
+              border-color var(--transition);
+}
+.btn-card-admin.edit {
+  background: var(--c-sky-xlight);
+  border-color: var(--c-sky-light);
+  color: var(--c-sky-dark);
+}
+.btn-card-admin.edit:hover {
+  background: var(--c-sky);
+  border-color: var(--c-sky);
+  color: #fff;
+}
+.btn-card-admin.trash {
+  background: #fdecea;
+  border-color: #f5c2be;
+  color: #c0392b;
+}
+.btn-card-admin.trash:hover {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #fff;
+}
+
+/* ── Admin Modal Overlay ────────────────────────────────────── */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,30,26,.55);
+  backdrop-filter: blur(5px);
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s var(--ease);
+}
+.admin-modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.admin-modal-box {
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 780px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 28px 72px rgba(0,0,0,.22);
+  overflow: hidden;
+  transform: translateY(28px) scale(.97);
+  transition: transform .28s var(--ease);
+}
+.admin-modal-overlay.open .admin-modal-box {
+  transform: translateY(0) scale(1);
+}
+
+/* ── Admin Panel sections ─────────────────────────────────────── */
+.adm-panel-head {
+  background: linear-gradient(135deg, var(--c-sky-dark) 0%, var(--c-mint-dark) 100%);
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.adm-panel-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adm-panel-head p {
+  font-size: .8rem;
+  color: rgba(255,255,255,.75);
+  margin-top: 3px;
+}
+.adm-panel-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.adm-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+.adm-panel-foot {
+  padding: 14px 28px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1.5px solid var(--c-border-light);
+  flex-shrink: 0;
+}
+
+.adm-section-title {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  margin-bottom: 12px;
+}
+
+/* ── Admin Table ─────────────────────────────────────────────── */
+.adm-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--c-border);
+}
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .84rem;
+}
+.adm-table thead {
+  background: var(--c-bg);
+}
+.adm-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  border-bottom: 1.5px solid var(--c-border);
+  white-space: nowrap;
+}
+.adm-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--c-border-light);
+  vertical-align: middle;
+  color: var(--c-text-soft);
+}
+.adm-table tbody tr:last-child td { border-bottom: none; }
+.adm-table tbody tr:hover td { background: var(--c-bg); }
+
+/* ── Admin User row ─────────────────────────────────────────── */
+.adm-user-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.adm-user-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--c-sky) 0%, var(--c-mint) 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: .88rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.adm-user-uname {
+  font-weight: 600;
+  color: var(--c-text);
+  font-size: .86rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.adm-user-email {
+  font-size: .75rem;
+  color: var(--c-muted);
+  margin-top: 1px;
+}
+
+.adm-badge-admin {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--c-sky) 0%, var(--c-mint) 100%);
+  color: #fff;
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  vertical-align: middle;
+}
+
+/* ── Progress bar in table ──────────────────────────────────── */
+.adm-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+.adm-progress-num {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--c-text-soft);
+}
+.adm-progress-bar {
+  height: 5px;
+  background: var(--c-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.adm-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-mint) 0%, var(--c-sky) 100%);
+  border-radius: 999px;
+  transition: width .5s var(--ease);
+}
+
+/* ── Row action buttons ─────────────────────────────────────── */
+.adm-row-actions {
+  display: flex;
+  gap: 6px;
+}
+.adm-btn-sm {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: background var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+.adm-btn-sm.view {
+  background: var(--c-mint-xlight);
+  border-color: var(--c-mint-light);
+  color: var(--c-mint-dark);
+}
+.adm-btn-sm.view:hover {
+  background: var(--c-mint);
+  border-color: var(--c-mint);
+  color: #fff;
+}
+.adm-btn-sm.edit {
+  background: var(--c-sky-xlight);
+  border-color: var(--c-sky-light);
+  color: var(--c-sky-dark);
+}
+.adm-btn-sm.edit:hover {
+  background: var(--c-sky);
+  border-color: var(--c-sky);
+  color: #fff;
+}
+
+/* ── Form inside admin modal ─────────────────────────────────── */
+.adm-form-head {
+  background: linear-gradient(135deg, var(--c-sky-dark) 0%, var(--c-mint-dark) 100%);
+  padding: 22px 28px;
+  flex-shrink: 0;
+}
+.adm-form-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+.adm-form-head p {
+  font-size: .8rem;
+  color: rgba(255,255,255,.75);
+  margin-top: 3px;
+}
+
+.adm-form-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.adm-field-row {
+  display: flex;
+  gap: 14px;
+}
+.adm-field-row.two-col > .adm-field { flex: 1; }
+
+.adm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+.adm-field label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.adm-field label span {
+  font-weight: 400;
+  color: var(--c-muted);
+  font-size: .75rem;
+}
+.adm-field input,
+.adm-field select,
+.adm-field textarea {
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: .86rem;
+  color: var(--c-text);
+  background: var(--c-surface);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  width: 100%;
+}
+.adm-field input:focus,
+.adm-field select:focus,
+.adm-field textarea:focus {
+  border-color: var(--c-sky);
+  box-shadow: 0 0 0 3px rgba(79,168,213,.13);
+}
+.adm-field textarea { resize: vertical; min-height: 80px; }
+
+.adm-field-check { flex-direction: column; gap: 6px; }
+.adm-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.adm-check-label input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--c-sky);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+.adm-field-hint {
+  font-size: .76rem;
+  color: var(--c-muted);
+  margin: 0;
+}
+
+.adm-form-foot {
+  padding: 14px 28px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1.5px solid var(--c-border-light);
+  flex-shrink: 0;
+}
+
+/* ── Admin Modal Buttons ─────────────────────────────────────── */
+.adm-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid rgba(255,255,255,.35);
+  background: rgba(255,255,255,.2);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  white-space: nowrap;
+}
+.adm-btn-primary:hover {
+  background: rgba(255,255,255,.35);
+  border-color: rgba(255,255,255,.6);
+}
+.adm-btn-primary.secondary {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.25);
+}
+
+.adm-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 22px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: linear-gradient(135deg, var(--c-sky-dark) 0%, var(--c-mint-dark) 100%);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: .86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition),
+              box-shadow var(--transition);
+}
+.adm-btn-submit:hover:not(:disabled) {
+  opacity: .9;
+  transform: scale(1.03);
+  box-shadow: 0 5px 18px rgba(47,127,170,.35);
+}
+.adm-btn-submit:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.adm-btn-cancel {
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: .84rem;
+  color: var(--c-muted);
+  cursor: pointer;
+  padding: 6px 4px;
+  transition: color var(--transition);
+}
+.adm-btn-cancel:hover { color: var(--c-text); }
+
+.adm-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid #f5c2be;
+  background: #fdecea;
+  color: #c0392b;
+  font-family: var(--font-body);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: auto;
+  transition: background var(--transition), border-color var(--transition);
+}
+.adm-btn-danger:hover {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #fff;
+}
+
+.adm-loading {
+  padding: 60px;
+  text-align: center;
+  color: var(--c-muted);
+  font-size: .9rem;
+}
+
+/* ── Responsive Admin ────────────────────────────────────────── */
+@media (max-width: 680px) {
+  .admin-modal-box { max-height: 95vh; border-radius: var(--radius-md); }
+  .adm-panel-head  { padding: 16px 18px; }
+  .adm-panel-body  { padding: 16px 18px; }
+  .adm-panel-foot  { padding: 12px 18px 16px; }
+  .adm-form-body   { padding: 16px 18px; }
+  .adm-form-foot   { padding: 12px 18px 16px; }
+  .adm-field-row.two-col { flex-direction: column; }
+  .adm-panel-head  { flex-direction: column; align-items: flex-start; }
+}
