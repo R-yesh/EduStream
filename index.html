@@ -42,6 +42,30 @@
     }
     .btn-logout svg { width: 14px; height: 14px; }
 
+    .btn-about {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius-pill);
+      border: 1.5px solid var(--c-border);
+      background: transparent;
+      color: var(--c-muted);
+      font-family: var(--font-body);
+      font-size: .78rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background var(--transition), color var(--transition),
+                  border-color var(--transition);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-about:hover {
+      background: var(--c-mint-xlight, #eaf7f2);
+      border-color: var(--c-mint-light, #c5ead9);
+      color: var(--c-mint-dark);
+    }
+
     /* Auth guard — hide body until verified */
     body { visibility: hidden; }
     body.authed { visibility: visible; }
@@ -71,6 +95,16 @@
 
     <!-- User chip + logout -->
     <div class="user-chip">
+      <a href="about.html" class="btn-about" title="About &amp; Contact">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="8"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+        </svg>
+        <span class="d-none d-md-inline">About</span>
+      </a>
+
       <div class="user-avatar" id="userAvatar">?</div>
       <span class="user-label" id="usernameDisplay">...</span>
 

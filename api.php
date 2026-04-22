@@ -1,6 +1,6 @@
 <?php
 /**
- * EduStream AI — api.php  (v2 — session-aware)
+ * EduStream AI — api.php  (v3 — secure session cookies)
  * ─────────────────────────────────────────────────────────────
  *  GET  api.php                          → all resources + categories
  *  GET  api.php?category_id=1            → filter by category
@@ -12,18 +12,34 @@
  *  POST api.php  {action:"feedback",  resource_id:N,
  *                 content_relevance:N, tag_relevance:N, comment:""}
  * ─────────────────────────────────────────────────────────────
+ *
+ * COOKIE / SESSION STRATEGY
+ * ─────────────────────────
+ *  Mirrors auth.php — HttpOnly + SameSite=Lax session cookie.
+ *  Must set cookie params BEFORE session_start().
  */
 
+/* ── Secure session cookie (must be BEFORE session_start) ──── */
+session_set_cookie_params([
+    'lifetime' => 0,          // Browser-session only (not persistent)
+    'path'     => '/',
+    'domain'   => '',
+    'secure'   => false,      // Flip to true on HTTPS
+    'httponly' => true,       // Blocks JS access → XSS protection
+    'samesite' => 'Lax',     // Blocks cross-site CSRF POSTs
+]);
+
 session_start();
-// Add this to ensure sessions work across different fetch requests
+
+/* Ensure the same session cookie policy is sent on every response */
 if (isset($_SERVER['HTTP_ORIGIN'])) {
     header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
     header('Access-Control-Allow-Credentials: true');
 }
+
 require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
@@ -34,6 +50,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 /* ── Auth guard ─────────────────────────────────────────────── */
 if (empty($_SESSION['user_id'])) {
+    /*
+     * Remember Me cookie fallback:
+     * If the session expired but a valid "edu_remember" cookie exists,
+     * re-authenticate the user transparently.
+     *
+     * In a full implementation you would:
+     *   1. Decode the cookie value.
+     *   2. Hash the token and look it up in a `remember_tokens` table.
+     *   3. Verify it hasn't expired.
+     *   4. Restore $_SESSION['user_id'] and $_SESSION['username'].
+     *   5. Rotate the token.
+     *
+     * Stub below shows WHERE to add that logic:
+     */
+    if (isset($_COOKIE['edu_remember'])) {
+        // TODO: implement token lookup + session restore here
+        // For now, still requires a valid server session.
+    }
+
     http_response_code(401);
     exit(json_encode(['error' => 'Not authenticated.', 'redirect' => 'login.html']));
 }
