@@ -1,6 +1,6 @@
 /**
- * EduStream AI — app.js  (v2)
- * Auth guard · dynamic username · logout · 4 categories · all interactions
+ * EduStream AI — app.js  (v4 — admin panel)
+ * Auth guard · dynamic username · logout · categories · admin controls
  */
 
 'use strict';
@@ -19,6 +19,7 @@ const state = {
   totalRes:          0,
   ratings:           { content: 0, tag: 0 },
   pendingResourceId: null,
+  isAdmin:           false,
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -38,52 +39,76 @@ const $comment    = () => $('feedbackComment');
 const $submitBtn  = () => $('submitBtn');
 const $toast      = () => $('toastEl');
 
-/* ── Auth guard: redirect to login if no session ──────────────
-   Uses sessionStorage (set by login.html on success).
-   Falls back to a whoami API call to confirm PHP session.   */
+/* ── Auth guard ─────────────────────────────────────────────── */
 (async function authGuard() {
   let user = null;
 
-  /* 1. Check sessionStorage first (fast) */
   try {
     const stored = sessionStorage.getItem('edu_user');
     if (stored) user = JSON.parse(stored);
   } catch (_) {}
 
   if (!user) {
-    /* 2. Confirm with server */
     try {
       const res = await fetch(`${API}?action=whoami`);
-      if (res.status === 401) {
-        window.location.replace('login.html');
-        return;
-      }
+      if (res.status === 401) { window.location.replace('login.html'); return; }
       const data = await res.json();
       if (data.error) { window.location.replace('login.html'); return; }
-      user = { id: data.user_id, username: data.username };
+      user = { id: data.user_id, username: data.username, is_admin: data.is_admin };
       sessionStorage.setItem('edu_user', JSON.stringify(user));
     } catch (_) {
       window.location.replace('login.html');
       return;
     }
+  } else {
+    // Refresh is_admin from server in case it changed
+    try {
+      const res  = await fetch(`${API}?action=whoami`);
+      const data = await res.json();
+      if (data.user_id) {
+        user.is_admin = data.is_admin;
+        sessionStorage.setItem('edu_user', JSON.stringify(user));
+      }
+    } catch (_) {}
   }
 
-  /* Show body + populate UI */
+  state.isAdmin = !!user.is_admin;
+
   document.body.classList.add('authed');
   const name = user.username || 'User';
-  const el   = document.getElementById('usernameDisplay');
-  const av   = document.getElementById('userAvatar');
+  const el   = $('usernameDisplay');
+  const av   = $('userAvatar');
   if (el) el.textContent = name;
   if (av) av.textContent = name.charAt(0).toUpperCase();
 
-  /* Boot the rest of the app */
+  // Inject admin button into topbar if admin
+  if (state.isAdmin) injectAdminButton();
+
   bootApp();
 })();
 
-/* ── Logout ───────────────────────────────────────────────────── */
+/* ── Inject Admin Panel button ──────────────────────────────── */
+function injectAdminButton() {
+  const chip = $('userChip') || document.querySelector('.user-chip');
+  if (!chip) return;
+  const btn = document.createElement('button');
+  btn.className   = 'btn-admin-panel';
+  btn.title       = 'Admin Panel';
+  btn.onclick     = () => openAdminPanel();
+  btn.innerHTML   = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+    </svg>
+    <span class="d-none d-md-inline">Admin</span>`;
+  chip.insertBefore(btn, chip.firstChild);
+}
+
+/* ── Logout ─────────────────────────────────────────────────── */
 function logout() {
   sessionStorage.removeItem('edu_user');
-  /* Hit the PHP logout endpoint to destroy the server session */
   fetch('auth.php?action=logout', { method: 'GET' })
     .finally(() => { window.location.replace('login.html'); });
 }
@@ -102,6 +127,8 @@ const TYPE_ICONS = {
 const LINK_ICON  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
 const CHECK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 const SEND_ICON  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+const EDIT_ICON  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const TRASH_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -121,16 +148,8 @@ async function bootApp() {
 async function loadCategories() {
   try {
     const res = await fetch(`${API}?action=categories`, { credentials: 'include' });
-    console.log('Categories Status:', res.status); // Should be 200
-    
-    if (res.status === 401) {
-      console.error('Session Expired: Redirecting to login.');
-      window.location.replace('login.html');
-      return;
-    }
-
+    if (res.status === 401) { window.location.replace('login.html'); return; }
     const data = await res.json();
-    console.log('Categories Data:', data);
     state.categories = data.categories || [];
     renderCategories();
   } catch (e) {
@@ -142,8 +161,8 @@ function renderCategories() {
   const list = $catList();
   if (!list) return;
   list.innerHTML = state.categories.map(c => `
-    <button class="cat-btn ${state.activeCat == c.id ? 'active' : ''}" 
-            data-cat="${c.id}" 
+    <button class="cat-btn ${state.activeCat == c.id ? 'active' : ''}"
+            data-cat="${c.id}"
             onclick="filterCategory(this, ${c.id})">
       <span class="cat-icon"><i class="bi ${c.icon}"></i></span>
       ${esc(c.name)}
@@ -156,11 +175,8 @@ function renderCategories() {
    ═══════════════════════════════════════════════════════════════ */
 async function loadProgress() {
   try {
-    const res = await fetch(`${API}?action=progress`, { credentials: 'include' });
-    console.log('Progress Status:', res.status);
-
+    const res  = await fetch(`${API}?action=progress`, { credentials: 'include' });
     const data = await res.json();
-    console.log('Progress Data:', data);
     state.progress = data.progress || {};
     updateProgressStat();
   } catch (e) {
@@ -169,13 +185,11 @@ async function loadProgress() {
 }
 
 function updateProgressStat() {
-  const n = Object.values(state.progress).filter(s => s === 'Completed').length;
+  const n  = Object.values(state.progress).filter(s => s === 'Completed').length;
   const el = $completedN();
   if (el) el.textContent = n;
-
   const fill = $barFill();
   if (fill && state.totalRes > 0) {
-    // Ensure the math uses the count of resources currently in the state
     fill.style.width = Math.round((n / state.totalRes) * 100) + '%';
   }
 }
@@ -185,14 +199,13 @@ function updateProgressStat() {
    ═══════════════════════════════════════════════════════════════ */
 async function loadResources() {
   showSkeletons(6);
-
   const params = new URLSearchParams();
   if (state.activeCat)   params.set('category_id', state.activeCat);
   if (state.searchQuery) params.set('q', state.searchQuery);
   const url = params.toString() ? `${API}?${params}` : API;
 
   try {
-    const res = await fetch(url, { credentials: 'include' });
+    const res  = await fetch(url, { credentials: 'include' });
     if (res.status === 401) { window.location.replace('login.html'); return; }
     const data = await res.json();
     state.resources = data.resources || [];
@@ -241,11 +254,18 @@ function buildCard(r, idx) {
     ? `<button class="btn-complete done" id="btn-${r.id}" disabled>${CHECK_ICON} Completed</button>`
     : `<button class="btn-complete" id="btn-${r.id}" onclick="openModal(${r.id})">${CHECK_ICON} Mark as Complete</button>`;
 
+  const adminActions = state.isAdmin ? `
+    <div class="card-admin-actions">
+      <button class="btn-card-admin edit"  onclick="openResourceForm(${r.id})" title="Edit resource">${EDIT_ICON} Edit</button>
+      <button class="btn-card-admin trash" onclick="deleteResource(${r.id}, '${esc(r.title)}')" title="Delete resource">${TRASH_ICON} Delete</button>
+    </div>` : '';
+
   return `
-  <article class="resource-card${done ? ' is-completed' : ''}"
+  <article class="resource-card${done ? ' is-completed' : ''}${state.isAdmin ? ' admin-view' : ''}"
            id="card-${r.id}"
            style="animation-delay:${idx * 55}ms"
            role="listitem">
+    ${adminActions}
     <div class="card-header-row">
       <div class="card-type-icon">${typeIcon}</div>
       <span class="diff-badge diff-${r.difficulty_level}">${esc(r.difficulty_level)}</span>
@@ -306,8 +326,8 @@ function filterCategory(btn, catId) {
   btn.classList.add('active');
   state.activeCat   = catId;
   state.searchQuery = '';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchClear').classList.remove('visible');
+  $('searchInput').value = '';
+  $('searchClear').classList.remove('visible');
   loadResources();
 }
 
@@ -315,8 +335,8 @@ function filterCategory(btn, catId) {
    SEARCH
    ═══════════════════════════════════════════════════════════════ */
 function bindSearch() {
-  const input = document.getElementById('searchInput');
-  const clear = document.getElementById('searchClear');
+  const input = $('searchInput');
+  const clear = $('searchClear');
   let timer;
 
   input.addEventListener('input', e => {
@@ -326,9 +346,7 @@ function bindSearch() {
     timer = setTimeout(() => {
       state.searchQuery = val;
       state.activeCat   = '';
-      // Reset active state on sidebar buttons
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      // Find the "All Resources" button (the one with empty data-cat)
       const allBtn = document.querySelector('.cat-btn[data-cat=""]');
       if (allBtn) allBtn.classList.add('active');
       loadResources();
@@ -345,7 +363,7 @@ function bindSearch() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODAL
+   FEEDBACK MODAL
    ═══════════════════════════════════════════════════════════════ */
 function bindModal() {
   $overlay().addEventListener('click', e => {
@@ -378,18 +396,15 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
-/* ── Stars ──────────────────────────────────────────────────── */
 function handleStar(btn, group) {
   const val = parseInt(btn.dataset.val, 10);
   state.ratings[group] = val;
-
   document.getElementById(`stars-${group}`)
     .querySelectorAll('.star-btn').forEach(s => {
       const v = parseInt(s.dataset.val, 10);
       s.classList.toggle('lit',    v <= val);
       s.classList.toggle('active', v === val);
     });
-
   $submitBtn().disabled = !(state.ratings.content > 0 && state.ratings.tag > 0);
 }
 
@@ -400,18 +415,17 @@ function resetStars(group) {
     .forEach(s => s.classList.remove('lit', 'active'));
 }
 
-/* ── Submit feedback ────────────────────────────────────────── */
 async function submitFeedback() {
-  const btn        = $submitBtn();
-  btn.disabled     = true;
-  btn.innerHTML    = '<span style="opacity:.6">Saving…</span>';
+  const btn     = $submitBtn();
+  btn.disabled  = true;
+  btn.innerHTML = '<span style="opacity:.6">Saving…</span>';
   const resourceId = state.pendingResourceId;
 
   try {
     const res = await fetch(API, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // Add this here too
+      credentials: 'include',
       body: JSON.stringify({
         action:            'feedback',
         resource_id:       resourceId,
@@ -427,12 +441,10 @@ async function submitFeedback() {
     if (data.success) {
       state.progress[resourceId] = 'Completed';
       updateProgressStat();
-
-      const cardBtn = document.getElementById(`btn-${resourceId}`);
+      const cardBtn = $(`btn-${resourceId}`);
       if (cardBtn) cardBtn.outerHTML =
         `<button class="btn-complete done" id="btn-${resourceId}" disabled>${CHECK_ICON} Completed</button>`;
-      document.getElementById(`card-${resourceId}`)?.classList.add('is-completed');
-
+      $(`card-${resourceId}`)?.classList.add('is-completed');
       closeModal();
       showToast('🎉 Marked complete! Thanks for your feedback.', 'success');
     } else {
@@ -445,6 +457,487 @@ async function submitFeedback() {
     btn.disabled  = false;
     btn.innerHTML = `${SEND_ICON} Submit &amp; Mark Complete`;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN — RESOURCE FORM (Add / Edit)
+   ═══════════════════════════════════════════════════════════════ */
+function openResourceForm(resourceId = null) {
+  const res = resourceId ? state.resources.find(r => r.id === resourceId) : null;
+  const isEdit = !!res;
+
+  const catOptions = state.categories.map(c =>
+    `<option value="${c.id}" ${res && res.category_id == c.id ? 'selected' : ''}>${esc(c.name)}</option>`
+  ).join('');
+
+  const diffOptions = ['Beginner','Intermediate','Advanced'].map(d =>
+    `<option value="${d}" ${res && res.difficulty_level === d ? 'selected' : ''}>${d}</option>`
+  ).join('');
+
+  const typeOptions = ['Article','Video','Course','Book','Tool'].map(t =>
+    `<option value="${t}" ${res && res.resource_type === t ? 'selected' : ''}>${t}</option>`
+  ).join('');
+
+  showAdminModal(`
+    <div class="adm-form-head">
+      <h2>${isEdit ? 'Edit Resource' : 'Add New Resource'}</h2>
+      <p>${isEdit ? `Editing: ${esc(res.title)}` : 'Add a new learning resource to the platform'}</p>
+    </div>
+    <div class="adm-form-body">
+      <div class="adm-field-row">
+        <div class="adm-field">
+          <label>Title *</label>
+          <input id="af-title" type="text" placeholder="e.g. The Modern JavaScript Tutorial" value="${esc(res?.title || '')}">
+        </div>
+      </div>
+      <div class="adm-field-row">
+        <div class="adm-field">
+          <label>URL *</label>
+          <input id="af-url" type="url" placeholder="https://..." value="${esc(res?.url || '')}">
+        </div>
+      </div>
+      <div class="adm-field-row two-col">
+        <div class="adm-field">
+          <label>Category *</label>
+          <select id="af-category">${catOptions}</select>
+        </div>
+        <div class="adm-field">
+          <label>Difficulty *</label>
+          <select id="af-difficulty">${diffOptions}</select>
+        </div>
+      </div>
+      <div class="adm-field-row two-col">
+        <div class="adm-field">
+          <label>Type *</label>
+          <select id="af-type">${typeOptions}</select>
+        </div>
+        <div class="adm-field">
+          <label>Author</label>
+          <input id="af-author" type="text" placeholder="e.g. John Doe" value="${esc(res?.author || '')}">
+        </div>
+      </div>
+      <div class="adm-field-row">
+        <div class="adm-field">
+          <label>Tags <span>(comma-separated)</span></label>
+          <input id="af-tags" type="text" placeholder="JavaScript, React, Beginner" value="${esc(res?.tags || '')}">
+        </div>
+      </div>
+      <div class="adm-field-row">
+        <div class="adm-field">
+          <label>Description</label>
+          <textarea id="af-desc" rows="3" placeholder="Describe this resource…">${esc(res?.description || '')}</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="adm-form-foot">
+      <button class="adm-btn-cancel" onclick="closeAdminModal()">Cancel</button>
+      <button class="adm-btn-submit" onclick="submitResourceForm(${resourceId || 'null'})">
+        ${isEdit ? `${EDIT_ICON} Save Changes` : '+ Save Resource'}
+      </button>
+    </div>
+  `);
+}
+
+async function submitResourceForm(resourceId) {
+  const body = {
+    action:           resourceId ? 'edit_resource' : 'add_resource',
+    id:               resourceId,
+    category_id:      parseInt($('af-category').value),
+    title:            $('af-title').value.trim(),
+    url:              $('af-url').value.trim(),
+    difficulty_level: $('af-difficulty').value,
+    resource_type:    $('af-type').value,
+    author:           $('af-author').value.trim(),
+    tags:             $('af-tags').value.trim(),
+    description:      $('af-desc').value.trim(),
+  };
+
+  const btn = document.querySelector('.adm-btn-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    const res  = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeAdminModal();
+      showToast(resourceId ? '✅ Resource updated!' : '✅ Resource added!', 'success');
+      await loadCategories();
+      await loadResources();
+    } else {
+      showToast(data.error || 'Save failed.', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    }
+  } catch (e) {
+    showToast('Network error.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+  }
+}
+
+async function deleteResource(resourceId, title) {
+  if (!confirm(`Delete "${title}"?\n\nThis will also remove all user progress for this resource. This cannot be undone.`)) return;
+
+  try {
+    const res  = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'delete_resource', resource_id: resourceId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('🗑️ Resource deleted.', 'success');
+      await loadResources();
+    } else {
+      showToast(data.error || 'Delete failed.', 'error');
+    }
+  } catch (e) {
+    showToast('Network error.', 'error');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN — PANEL (Users + Add Resource button)
+   ═══════════════════════════════════════════════════════════════ */
+async function openAdminPanel() {
+  showAdminModal(`<div class="adm-loading">Loading…</div>`);
+
+  try {
+    const res  = await fetch(`${API}?action=admin_users`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.error) { closeAdminModal(); showToast(data.error, 'error'); return; }
+    renderAdminPanel(data.users || []);
+  } catch (e) {
+    closeAdminModal();
+    showToast('Failed to load admin panel.', 'error');
+  }
+}
+
+function renderAdminPanel(users) {
+  const totalResources = state.totalRes;
+  const userRows = users.map(u => `
+    <tr>
+      <td>
+        <div class="adm-user-name">
+          <div class="adm-user-avatar">${u.username.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="adm-user-uname">${esc(u.username)} ${u.is_admin ? '<span class="adm-badge-admin">Admin</span>' : ''}</div>
+            <div class="adm-user-email">${esc(u.email)}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="diff-badge diff-${u.preferred_difficulty}">${esc(u.preferred_difficulty)}</span></td>
+      <td>
+        <div class="adm-progress-wrap">
+          <span class="adm-progress-num">${u.completed_count} / ${totalResources}</span>
+          <div class="adm-progress-bar">
+            <div class="adm-progress-fill" style="width:${totalResources ? Math.round((u.completed_count/totalResources)*100) : 0}%"></div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="adm-row-actions">
+          <button class="adm-btn-sm view"  onclick="openUserDetail(${u.id})">View</button>
+          <button class="adm-btn-sm edit"  onclick="openUserEdit(${u.id}, '${esc(u.email)}', '${u.preferred_difficulty}', ${u.is_admin})">Edit</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  const content = `
+    <div class="adm-panel-head">
+      <div>
+        <h2>Admin Panel</h2>
+        <p>${users.length} user${users.length !== 1 ? 's' : ''} · ${totalResources} resource${totalResources !== 1 ? 's' : ''}</p>
+      </div>
+      <div class="adm-panel-head-actions">
+        <button class="adm-btn-primary" onclick="closeAdminModal(); openResourceForm()">+ Add Resource</button>
+        <button class="adm-btn-primary secondary" onclick="openAddCategoryForm()">+ Category</button>
+      </div>
+    </div>
+    <div class="adm-panel-body">
+      <div class="adm-section-title">Users</div>
+      <div class="adm-table-wrap">
+        <table class="adm-table">
+          <thead><tr><th>User</th><th>Level</th><th>Progress</th><th>Actions</th></tr></thead>
+          <tbody>${userRows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="adm-panel-foot">
+      <button class="adm-btn-cancel" onclick="closeAdminModal()">Close</button>
+    </div>
+  `;
+  updateAdminModalContent(content);
+}
+
+async function openUserDetail(userId) {
+  updateAdminModalContent(`<div class="adm-loading">Loading user…</div>`);
+  try {
+    const res  = await fetch(`${API}?action=admin_user_detail&user_id=${userId}`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.error) { showToast(data.error, 'error'); return; }
+
+    const { user, progress, feedback } = data;
+    const progressRows = progress.length
+      ? progress.map(p => `
+          <tr>
+            <td>${esc(p.title)}</td>
+            <td><span class="tag-chip">${esc(p.resource_type)}</span></td>
+            <td><span class="tag-chip">${esc(p.category_name)}</span></td>
+            <td><span class="diff-badge diff-${p.status.replace(' ','-')}">${esc(p.status)}</span></td>
+            <td style="font-size:.75rem;color:var(--c-muted)">${new Date(p.updated_at).toLocaleDateString()}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="5" style="text-align:center;color:var(--c-muted);padding:20px">No progress yet</td></tr>`;
+
+    const feedbackRows = feedback.length
+      ? feedback.map(f => `
+          <tr>
+            <td>${esc(f.title)}</td>
+            <td>⭐ ${f.content_relevance}/5</td>
+            <td>🏷️ ${f.tag_relevance}/5</td>
+            <td style="font-size:.78rem">${esc(f.comment || '—')}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="4" style="text-align:center;color:var(--c-muted);padding:20px">No feedback yet</td></tr>`;
+
+    updateAdminModalContent(`
+      <div class="adm-panel-head">
+        <div>
+          <h2>${esc(user.username)} ${user.is_admin ? '<span class="adm-badge-admin">Admin</span>' : ''}</h2>
+          <p>${esc(user.email)} · Joined ${new Date(user.created_at).toLocaleDateString()}</p>
+        </div>
+        <div class="adm-panel-head-actions">
+          <button class="adm-btn-primary secondary" onclick="openAdminPanel()">← Back</button>
+        </div>
+      </div>
+      <div class="adm-panel-body">
+        <div class="adm-section-title">Learning Progress (${progress.length} resources)</div>
+        <div class="adm-table-wrap">
+          <table class="adm-table">
+            <thead><tr><th>Resource</th><th>Type</th><th>Category</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>${progressRows}</tbody>
+          </table>
+        </div>
+        <div class="adm-section-title" style="margin-top:24px">Feedback Submitted (${feedback.length})</div>
+        <div class="adm-table-wrap">
+          <table class="adm-table">
+            <thead><tr><th>Resource</th><th>Content</th><th>Tags</th><th>Comment</th></tr></thead>
+            <tbody>${feedbackRows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="adm-panel-foot">
+        <button class="adm-btn-danger" onclick="confirmResetProgress(${user.id}, '${esc(user.username)}')">Reset All Progress</button>
+        <button class="adm-btn-cancel" onclick="closeAdminModal()">Close</button>
+      </div>
+    `);
+  } catch (e) {
+    showToast('Failed to load user detail.', 'error');
+  }
+}
+
+function openUserEdit(userId, email, difficulty, isAdmin) {
+  const diffOptions = ['Beginner','Intermediate','Advanced'].map(d =>
+    `<option value="${d}" ${difficulty === d ? 'selected' : ''}>${d}</option>`
+  ).join('');
+
+  showAdminModal(`
+    <div class="adm-form-head">
+      <h2>Edit User</h2>
+      <p>Update user settings and permissions</p>
+    </div>
+    <div class="adm-form-body">
+      <div class="adm-field-row">
+        <div class="adm-field">
+          <label>Email</label>
+          <input id="ue-email" type="email" value="${esc(email)}" placeholder="user@example.com">
+        </div>
+      </div>
+      <div class="adm-field-row">
+        <div class="adm-field">
+          <label>Preferred Difficulty</label>
+          <select id="ue-difficulty">${diffOptions}</select>
+        </div>
+      </div>
+      <div class="adm-field-row">
+        <div class="adm-field adm-field-check">
+          <label class="adm-check-label">
+            <input type="checkbox" id="ue-admin" ${isAdmin ? 'checked' : ''}>
+            <span>Admin privileges</span>
+          </label>
+          <p class="adm-field-hint">Grants access to admin panel, resource management, and user controls.</p>
+        </div>
+      </div>
+    </div>
+    <div class="adm-form-foot">
+      <button class="adm-btn-cancel" onclick="closeAdminModal()">Cancel</button>
+      <button class="adm-btn-submit" onclick="submitUserEdit(${userId})">${EDIT_ICON} Save Changes</button>
+    </div>
+  `);
+}
+
+async function submitUserEdit(userId) {
+  const body = {
+    action:               'edit_user',
+    user_id:              userId,
+    email:                $('ue-email').value.trim(),
+    preferred_difficulty: $('ue-difficulty').value,
+    is_admin:             $('ue-admin').checked,
+  };
+
+  const btn = document.querySelector('.adm-btn-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    const res  = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeAdminModal();
+      showToast('✅ User updated!', 'success');
+    } else {
+      showToast(data.error || 'Update failed.', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Save Changes'; }
+    }
+  } catch (e) {
+    showToast('Network error.', 'error');
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+async function confirmResetProgress(userId, username) {
+  if (!confirm(`Reset ALL progress and feedback for "${username}"?\n\nThis cannot be undone.`)) return;
+  try {
+    const res  = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'reset_progress', user_id: userId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeAdminModal();
+      showToast(`🗑️ ${username}'s progress reset.`, 'success');
+    } else {
+      showToast(data.error || 'Reset failed.', 'error');
+    }
+  } catch (e) {
+    showToast('Network error.', 'error');
+  }
+}
+
+function openAddCategoryForm() {
+  showAdminModal(`
+    <div class="adm-form-head">
+      <h2>Add New Category</h2>
+      <p>Create a new category for resources</p>
+    </div>
+    <div class="adm-form-body">
+      <div class="adm-field-row">
+        <div class="adm-field">
+          <label>Name *</label>
+          <input id="ac-name" type="text" placeholder="e.g. Data Science">
+        </div>
+      </div>
+      <div class="adm-field-row two-col">
+        <div class="adm-field">
+          <label>Slug * <span>(URL-friendly)</span></label>
+          <input id="ac-slug" type="text" placeholder="e.g. data-science">
+        </div>
+        <div class="adm-field">
+          <label>Bootstrap Icon <span>(bi-xxx)</span></label>
+          <input id="ac-icon" type="text" placeholder="bi-graph-up" value="bi-folder">
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:var(--c-muted);margin-top:-6px">
+        Browse icons at <a href="https://icons.getbootstrap.com" target="_blank">icons.getbootstrap.com</a>
+      </p>
+    </div>
+    <div class="adm-form-foot">
+      <button class="adm-btn-cancel" onclick="closeAdminModal()">Cancel</button>
+      <button class="adm-btn-submit" onclick="submitAddCategory()">+ Save Category</button>
+    </div>
+  `);
+
+  // Auto-slug from name
+  $('ac-name').addEventListener('input', e => {
+    const slug = e.target.value.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    $('ac-slug').value = slug;
+  });
+}
+
+async function submitAddCategory() {
+  const body = {
+    action: 'add_category',
+    name:   $('ac-name').value.trim(),
+    slug:   $('ac-slug').value.trim(),
+    icon:   $('ac-icon').value.trim() || 'bi-folder',
+  };
+
+  const btn = document.querySelector('.adm-btn-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    const res  = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeAdminModal();
+      showToast('✅ Category added!', 'success');
+      await loadCategories();
+    } else {
+      showToast(data.error || 'Save failed.', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '+ Save Category'; }
+    }
+  } catch (e) {
+    showToast('Network error.', 'error');
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN MODAL SHELL
+   ═══════════════════════════════════════════════════════════════ */
+let _adminModalEl = null;
+
+function showAdminModal(innerHtml) {
+  if (!_adminModalEl) {
+    _adminModalEl = document.createElement('div');
+    _adminModalEl.id = 'adminModalOverlay';
+    _adminModalEl.className = 'admin-modal-overlay';
+    _adminModalEl.addEventListener('click', e => {
+      if (e.target === _adminModalEl) closeAdminModal();
+    });
+    document.body.appendChild(_adminModalEl);
+  }
+  _adminModalEl.innerHTML = `<div class="admin-modal-box">${innerHtml}</div>`;
+  _adminModalEl.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function updateAdminModalContent(innerHtml) {
+  if (_adminModalEl) {
+    _adminModalEl.innerHTML = `<div class="admin-modal-box">${innerHtml}</div>`;
+  }
+}
+
+function closeAdminModal() {
+  if (_adminModalEl) _adminModalEl.classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 /* ═══════════════════════════════════════════════════════════════
